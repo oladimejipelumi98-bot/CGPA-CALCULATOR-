@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CGPA Calculator</title>
+<style>
+:root{--bg:#f3f7ff;--card:#fff;--text:#0f1b33;--muted:#5b6785;--primary:#1d4ed8;--primary-t:#fff;--line:#d5def2;--danger:#c62828;--box-sizing:border-box;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0c1426;--card:#152039;--text:#eaf0ff;--muted:#9fb0d4;--primary:#5b8cff;--primary-t:#0c1426;--line:#27365a;--danger:#ff7b7b}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0c1426;--card:#152039;--text:#eaf0ff;--muted:#9fb0d4;--primary:#5b8cff;--primary-t:#0c1426;--line:#27365a;--danger:#ff7b7b}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.4}
+.wrap{max-width:520px;margin:0 auto;padding:18px 14px 28px}
+h1{margin:0;font-size:1.6rem}
+.tag{margin:4px 0 16px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;padding:11px 10px;font-size:1rem;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text)}
+.row{display:grid;grid-template-columns:1fr 70px 70px 40px;gap:8px;align-items:end;margin-bottom:10px}
+.row button{height:44px;padding:0}
+.hdr{font-size:.75rem;color:var(--muted);display:grid;grid-template-columns:1fr 70px 70px 40px;gap:8px;margin-bottom:4px}
+button{font-size:1rem;border:0;border-radius:10px;padding:12px 14px;cursor:pointer;font-weight:600}
+.primary{background:var(--primary);color:var(--primary-t);width:100%;margin-top:6px}
+.ghost{background:transparent;color:var(--primary);border:1px solid var(--primary);width:100%}
+.del{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.result{text-align:center}
+.big{font-size:3rem;font-weight:800;color:var(--primary);margin:2px 0}
+.cls{font-size:1.1rem;font-weight:700}
+.small{color:var(--muted);font-size:.85rem;margin-top:4px}
+.err{color:var(--danger);font-size:.9rem;margin-top:8px}
+footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:18px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CGPA Calculator</h1>
+  <p class="tag">Add your courses, get your GPA and CGPA instantly.</p>
+
+  <div class="card">
+    <label for="scale">Grading scale</label>
+    <select id="scale">
+      <option value="nce">NCE 5.0 scale (Distinction, Credit, Merit, Pass)</option>
+      <option value="5">University 5.0 scale (A=5, B=4, C=3, D=2, E=1, F=0)</option>
+      <option value="4">4.0 scale (A=4, B=3, C=2, D=1, F=0)</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="hdr"><span>Course</span><span>Units</span><span>Grade</span><span></span></div>
+    <div id="rows"></div>
+    <button class="ghost" id="add" type="button">+ Add Course</button>
+  </div>
+
+  <div class="card">
+    <label>Previous record (optional)</label>
+    <div class="two">
+      <div><label for="pc">Previous CGPA</label><input id="pc" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 3.80"></div>
+      <div><label for="pu">Previous total units</label><input id="pu" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 48"></div>
+    </div>
+  </div>
+
+  <button class="primary" id="calc" type="button">Calculate</button>
+  <button class="ghost" id="reset" type="button" style="margin-top:8px">Reset</button>
+  <div class="err" id="err" hidden></div>
+
+  <div class="card result" id="out" hidden style="margin-top:14px">
+    <div class="small">Semester GPA</div>
+    <div class="big" id="gpa">0.00</div>
+    <div class="small" id="units"></div>
+    <div id="overall" hidden style="margin-top:12px">
+      <div class="small">Overall CGPA</div>
+      <div class="big" id="cgpa">0.00</div>
+      <div class="small" id="cunits"></div>
+    </div>
+    <div class="cls" id="cls" style="margin-top:8px"></div>
+    <div class="two" style="margin-top:12px">
+      <button class="ghost" id="share" type="button">Share</button>
+      <a id="wa" class="ghost" target="_blank" rel="noopener" href="#" style="display:block;text-decoration:none;padding:12px 14px;border-radius:10px;font-weight:600;text-align:center">WhatsApp</a>
+    </div>
+    <div class="small" id="shmsg"></div>
+  </div>
+
+  <footer>Built by EMMYTECH GRAPHIC</footer>
+</div>
+
+<script>
+var GRADES={nce:{A:5,B:4,C:3,D:2,E:1,F:0},5:{A:5,B:4,C:3,D:2,E:1,F:0},4:{A:4,B:3,C:2,D:1,F:0}};
+var rows=[];
+var nextId=1;
+var $=function(id){return document.getElementById(id)};
+
+function newRow(){return{id:nextId++,name:"",units:"",grade:"A"}}
+
+function gradeOptions(sel){
+  var g=GRADES[$("scale").value],h="";
+  Object.keys(g).forEach(function(k){h+='<option value="'+k+'"'+(k===sel?" selected":"")+'>'+k+'</option>'});
+  return h;
+}
+
+function render(){
+  var box=$("rows");box.innerHTML="";
+  rows.forEach(function(r,i){
+    var d=document.createElement("div");d.className="row";
+    d.innerHTML='<input type="text" placeholder="Course '+(i+1)+'" value="'+r.name.replace(/"/g,"&quot;")+'" aria-label="Course name">'+
+      '<input type="number" inputmode="numeric" min="0" step="1" placeholder="3" value="'+r.units+'" aria-label="Credit units">'+
+      '<select aria-label="Grade">'+gradeOptions(r.grade)+'</select>'+
+      '<button type="button" class="del" aria-label="Delete course">&times;</button>';
+    var f=d.children;
+    f[0].oninput=function(){r.name=this.value};
+    f[1].oninput=function(){r.units=this.value};
+    f[2].onchange=function(){r.grade=this.value};
+    f[3].onclick=function(){if(rows.length>1){rows=rows.filter(function(x){return x.id!==r.id});render()}else{r.name="";r.units="";r.grade="A";render()}};
+    box.appendChild(d);
+  });
+}
+
+function classOf(v,scale){
+  if(scale==="nce"){if(v>=4.5)return"Distinction";if(v>=3.5)return"Credit";if(v>=2.5)return"Merit";if(v>=1.5)return"Pass";return"Fail"}
+  var t=scale==="5"?[4.5,3.5,2.4,1.5]:[3.5,3.0,2.0,1.0];
+  if(v>=t[0])return"First Class";
+  if(v>=t[1])return"Second Class Upper";
+  if(v>=t[2])return"Second Class Lower";
+  if(v>=t[3])return"Third Class";
+  return"Pass";
+}
+
+function calc(){
+  var err=$("err");err.hidden=true;
+  var scale=$("scale").value,g=GRADES[scale],pts=0,units=0;
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i],u=parseFloat(r.units);
+    if(r.units===""&&r.name==="")continue;
+    if(isNaN(u)||u<=0){err.textContent="Enter a valid credit unit for course "+(i+1)+".";err.hidden=false;$("out").hidden=true;return}
+    pts+=u*g[r.grade];units+=u;
+  }
+  if(units===0){err.textContent="Add at least one course with its credit units.";err.hidden=false;$("out").hidden=true;return}
+  var gpa=pts/units;
+  $("gpa").textContent=gpa.toFixed(2);
+  $("units").textContent=units+" credit units this semester";
+  var pc=parseFloat($("pc").value),pu=parseFloat($("pu").value),final=gpa;
+  if(!isNaN(pc)&&!isNaN(pu)&&pu>0){
+    final=(pc*pu+pts)/(pu+units);
+    $("cgpa").textContent=final.toFixed(2);
+    $("cunits").textContent=(pu+units)+" total credit units";
+    $("overall").hidden=false;
+  }else{$("overall").hidden=true}
+  var label=classOf(final,scale);
+  $("cls").textContent=label;
+  shareText="My "+($("overall").hidden?"GPA":"CGPA")+" is "+final.toFixed(2)+" ("+label+"). Calculate yours with the CGPA Calculator by EMMYTECH GRAPHIC.";
+  $("wa").href="https://wa.me/?text="+encodeURIComponent(shareText);
+  $("shmsg").textContent="";
+  $("out").hidden=false;
+  $("out").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+$("add").onclick=function(){rows.push(newRow());render()};
+$("calc").onclick=calc;
+$("scale").onchange=function(){
+  var g=GRADES[this.value];
+  rows.forEach(function(r){if(!(r.grade in g))r.grade="A"});
+  render();$("out").hidden=true;
+};
+$("reset").onclick=function(){
+  rows=[newRow()];$("pc").value="";$("pu").value="";
+  $("out").hidden=true;$("err").hidden=true;render();
+};
+var shareText="";
+$("share").onclick=function(){
+  var m=$("shmsg");
+  if(navigator.share){navigator.share({text:shareText}).catch(function(){})}
+  else{try{navigator.clipboard.writeText(shareText).then(function(){m.textContent="Result copied. Paste it anywhere."},function(){m.textContent=shareText})}catch(e){m.textContent=shareText}}
+};
+rows=[newRow()];render();
+</script>
+</body>
+</html>
